@@ -70,8 +70,7 @@ func handlerMain(writer *response.Writer, req *request.Request) {
 }
 
 func writePage(page pageData) string {
-	return fmt.Sprintf(`
-<!DOCTYPE html>
+	return fmt.Sprintf(`<!DOCTYPE html>
   <html><head>
     <title>%s</title>
   </head>
