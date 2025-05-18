@@ -14,18 +14,18 @@ const (
 	StatusCodeInternalServerError StatusCode = 500
 )
 
-var statusText = map[StatusCode]string{
+var statusCodeText = map[StatusCode]string{
 	StatusCodeSuccess:             "OK",
 	StatusCodeBadRequest:          "BAD REQUEST",
 	StatusCodeInternalServerError: "INTERNAL SERVER ERROR",
 }
 
 func (s StatusCode) String() string {
-	return statusText[s]
+	return statusCodeText[s]
 }
 
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
-	if text, ok := statusText[statusCode]; ok {
+	if text, ok := statusCodeText[statusCode]; ok {
 		_, err := fmt.Fprintf(w, "HTTP/1.1 %d %s\r\n", statusCode, text)
 		return err
 	}

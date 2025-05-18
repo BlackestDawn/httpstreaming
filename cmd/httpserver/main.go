@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"httpfromtcp/internal/headers"
 	"httpfromtcp/internal/request"
 	"httpfromtcp/internal/response"
 	"httpfromtcp/internal/server"
-	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -13,6 +13,18 @@ import (
 )
 
 const port = 42069
+
+type pageData struct {
+	pageTitle   string
+	pageHeading string
+	pageContent string
+	header      headers.Headers
+}
+
+type HandlerError struct {
+	Code    response.StatusCode
+	Message string
+}
 
 func main() {
 	server, err := server.Serve(port, handlerMain)
@@ -28,21 +40,44 @@ func main() {
 	log.Println("Server gracefully stopped")
 }
 
-func handlerMain(w io.Writer, req *request.Request) *server.HandlerError {
+func handlerMain(writer *response.Writer, req *request.Request) {
 	log.Println("Handling request for", req.RequestLine.RequestTarget)
+	page := pageData{}
+
+	// Handle page
 	switch req.RequestLine.RequestTarget {
 	case "/yourproblem":
-		return &server.HandlerError{
-			Code:    response.StatusCodeBadRequest,
-			Message: "Your problem is not my problem\n",
-		}
+		writer.WriteStatusLine(response.StatusCodeBadRequest)
+		page.pageTitle = "400 Bad Request"
+		page.pageHeading = "Bad Request"
+		page.pageContent = "Your request honestly kinda sucked."
 	case "/myproblem":
-		return &server.HandlerError{
-			Code:    response.StatusCodeInternalServerError,
-			Message: "Woopsie, my bad\n",
-		}
+		writer.WriteStatusLine(response.StatusCodeInternalServerError)
+		page.pageTitle = "500 Internal Server Error"
+		page.pageHeading = "Internal Server Error"
+		page.pageContent = "Okay, you know what? This one is on me."
 	default:
-		fmt.Fprintf(w, "All good, frfr\n")
-		return nil
+		writer.WriteStatusLine(response.StatusCodeSuccess)
+		page.pageTitle = "200 OK"
+		page.pageHeading = "Success!"
+		page.pageContent = "Your request was an absolute banger."
 	}
+	fullPage := writePage(page)
+	page.header = response.GetDefaultHeaders(len(fullPage))
+	page.header["Content-Type"] = "text/html"
+	writer.WriteHeaders(page.header)
+	writer.WriteBody([]byte(fullPage))
+}
+
+func writePage(page pageData) string {
+	return fmt.Sprintf(`
+<!DOCTYPE html>
+  <html><head>
+    <title>%s</title>
+  </head>
+  <body>
+    <h1>%s</h1>
+    <p>%s</p>
+  </body>
+</html>`, page.pageTitle, page.pageHeading, page.pageContent)
 }
