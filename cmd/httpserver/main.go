@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"httpfromtcp/internal/headers"
 	"httpfromtcp/internal/request"
 	"httpfromtcp/internal/response"
 	"httpfromtcp/internal/server"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -18,7 +18,6 @@ type pageData struct {
 	pageTitle   string
 	pageHeading string
 	pageContent string
-	header      headers.Headers
 }
 
 type HandlerError struct {
@@ -45,6 +44,13 @@ func handlerMain(writer *response.Writer, req *request.Request) {
 	page := pageData{}
 
 	// Handle page
+	if strings.HasPrefix(req.RequestLine.RequestTarget, "/httpbin/") {
+		log.Printf("proxying %s to httpbin.org\n", req.RequestLine.RequestTarget)
+		req.RequestLine.RequestTarget = strings.TrimPrefix(req.RequestLine.RequestTarget, "/httpbin")
+		handlerHTTPbin(writer, req)
+		return
+	}
+
 	switch req.RequestLine.RequestTarget {
 	case "/yourproblem":
 		writer.WriteStatusLine(response.StatusCodeBadRequest)
@@ -63,9 +69,9 @@ func handlerMain(writer *response.Writer, req *request.Request) {
 		page.pageContent = "Your request was an absolute banger."
 	}
 	fullPage := writePage(page)
-	page.header = response.GetDefaultHeaders(len(fullPage))
-	page.header["Content-Type"] = "text/html"
-	writer.WriteHeaders(page.header)
+	headers := response.GetDefaultHeaders(len(fullPage))
+	headers.Set("Content-Type", "text/html")
+	writer.WriteHeaders(headers)
 	writer.WriteBody([]byte(fullPage))
 }
 

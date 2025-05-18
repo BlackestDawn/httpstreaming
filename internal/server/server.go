@@ -3,7 +3,6 @@ package server
 import (
 	"httpfromtcp/internal/request"
 	"httpfromtcp/internal/response"
-	"io"
 	"log"
 	"net"
 	"strconv"
@@ -37,9 +36,7 @@ func Serve(port int, handler Handler) (*Server, error) {
 		handler:  handler,
 	}
 
-	go func() {
-		s.listen()
-	}()
+	go s.listen()
 
 	return s, nil
 }
@@ -72,20 +69,10 @@ func (s *Server) handle(conn net.Conn) {
 	req, err := request.RequestFromReader(conn)
 	if err != nil {
 		log.Println("Error reading request:", err)
-		WriteError(conn, &HandlerError{
-			Code:    response.StatusCodeInternalServerError,
-			Message: err.Error(),
-		})
 		return
 	}
 
 	// Handle request
 	writer := response.NewWriter(conn)
 	s.handler(writer, req)
-}
-
-func WriteError(w io.Writer, err *HandlerError) {
-	response.WriteStatusLine(w, err.Code)
-	response.WriteHeaders(w, response.GetDefaultHeaders(len(err.Message)))
-	w.Write([]byte(err.Message))
 }

@@ -12,6 +12,7 @@ const (
 	writerStateStatusLine writerState = iota
 	writerStateHeader
 	writerStateBody
+	writerStateTrailers
 	writerStateClose
 )
 
@@ -21,6 +22,7 @@ var writerStateName = writerStateNames{
 	writerStateStatusLine: "status line",
 	writerStateHeader:     "header",
 	writerStateBody:       "body",
+	writerStateTrailers:   "trailers",
 	writerStateClose:      "close",
 }
 
@@ -82,6 +84,22 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	w.state = writerStateClose
+	w.state = writerStateTrailers
 	return n, nil
+}
+
+func (w *Writer) WriteTrailers(headers headers.Headers) error {
+	// Check if at proper state
+	if w.state != writerStateTrailers {
+		return fmt.Errorf("invalid state writing trailers: %s", w.state)
+	}
+
+	for k, v := range headers {
+		_, err := fmt.Fprintf(w.writer, "%s: %s\r\n", k, v)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := fmt.Fprintf(w.writer, "\r\n")
+	return err
 }
