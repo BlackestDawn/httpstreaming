@@ -27,8 +27,7 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	}
 
 	// Extract and split into parts
-	line := string(data[:idx])
-	parts := strings.SplitN(line, ":", 2)
+	parts := strings.SplitN(string(data[:idx]), ":", 2)
 
 	// Validate key
 	key := strings.TrimLeft(parts[0], " ")
@@ -69,11 +68,7 @@ func validateHeaderKey(key string) bool {
 	return true
 }
 
-func (h Headers) Get(key string) (string, error) {
-	val, ok := h[strings.ToLower(key)]
-	if !ok {
-		return "", fmt.Errorf("header key not found: %s", key)
-	}
-
-	return val, nil
+func (h Headers) Get(key string) (string, bool) {
+	v, ok := h[strings.ToLower(key)]
+	return v, ok
 }
